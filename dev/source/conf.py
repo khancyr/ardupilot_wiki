@@ -94,7 +94,7 @@ exclude_patterns = [
     "docs/building-for-navio-on-rpi2.rst",
     "docs/building-px4-with-qtcreator.rst",
     "docs/building-the-code-on-mac.rst",
-    "building-the-code-onlinux.rst",
+    "docs/building-the-code-onlinux.rst",
     "docs/building_with_make.rst",
     "docs/common-commercial-support-bak.rst",
     "docs/solo-opensolo-quickstart.rst",
