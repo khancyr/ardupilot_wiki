@@ -87,7 +87,19 @@ language = None
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = []
+exclude_patterns = [
+    "docs/building-apm-for-flymaple.rst",
+    "docs/building-ardupilot-apm-with-visual-studio-visual-micro.rst",
+    "docs/building-ardupilot-with-arduino-windows.rst",
+    "docs/building-for-navio-on-rpi2.rst",
+    "docs/building-px4-with-qtcreator.rst",
+    "docs/building-the-code-on-mac.rst",
+    "building-the-code-onlinux.rst",
+    "docs/building_with_make.rst",
+    "docs/common-commercial-support-bak.rst",
+    "docs/solo-opensolo-quickstart.rst",
+    "docs/trademark.rst"
+]
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
