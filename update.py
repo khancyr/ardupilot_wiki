@@ -49,6 +49,8 @@ import requests
 from urllib.parse import urlparse
 from concurrent.futures import ThreadPoolExecutor
 from typing import Optional, Dict, List, Union
+from sphinx.application import Sphinx
+
 
 import rst_table
 
@@ -264,6 +266,7 @@ def build_one(wiki, fast):
     else:
         if not fast:
             subprocess.check_call(["nice", "make", "clean"], cwd=wiki)
+        copy_cached_doctree(wiki)
         subprocess.check_call(["nice", "make", "html"], cwd=wiki)
 
 
@@ -688,6 +691,67 @@ def create_latest_parameter_redirect(default_param_file, vehicle):
           default_param_file[:-3])
 
 
+def prebuild_param_output(site=None, fast=False):
+    for key, value in PARAMETER_SITE.items():
+        if (site == key or site is None) and (key != 'AP_Periph'):
+            new_parameters_folder = (os.getcwd() +
+                                     '/../new_params_mversion/%s/' % value)
+            old_parameters_folder = (os.getcwd() +
+                            '/../old_params_mversion/%s/' % value)
+            source_folder = os.getcwd() + "/" + key + "/source/"
+            config_file = source_folder + "conf.py"
+            inc_file = source_folder + "_static/parameters_versioning_script.inc"
+            index_file = new_parameters_folder + "source/index.rst"
+            for file in [config_file]:
+                print("Copying %s to %s" %
+                      (file, new_parameters_folder + "source"))
+                shutil.copy2(file, new_parameters_folder + "source")
+            locale_dir = "source/locales/en/LC_MESSAGES"
+            os.makedirs(new_parameters_folder + locale_dir, exist_ok=True)
+            os.makedirs(new_parameters_folder + "source/_static/", exist_ok=True)
+            shutil.copy2(inc_file, new_parameters_folder + "source/_static/")
+            with open(index_file, 'w') as file:
+                content = ".. _home:\n\n================\nArduPilot Copter\n================"
+                file.write(content)
+            file_stats = os.stat(config_file)
+            access_time = file_stats.st_atime
+            modification_time = file_stats.st_mtime
+            config_file = new_parameters_folder + "source/conf.py"
+            with open(config_file, "r") as file:
+                lines = file.readlines()
+            with open(config_file, "w") as file:
+                for line in lines:
+                    if "sys.path.insert(0, '../..')" in line:
+                        line = "sys.path.insert(0,'" + source_folder + "../..')\n"
+                    if "html_logo =" in line:
+                        line = "#" + line
+                    if "html_favicon =" in line:
+                        line = "#" + line
+                    file.write(line)
+            os.utime(index_file, (access_time, modification_time))
+            os.utime(config_file, (access_time, modification_time))
+            source_dir = os.path.join(new_parameters_folder, 'source')
+            output_dir = os.path.join(new_parameters_folder, 'build')
+            html_dir = os.path.join(output_dir, 'html')
+            doctree_dir = os.path.join(output_dir, 'doctrees')
+            # This will fail if there's no folder to clean, so we check first
+            if not fast and os.path.exists(output_dir):
+                shutil.rmtree(output_dir)
+
+            app = Sphinx(srcdir=source_dir, confdir=source_dir, outdir=html_dir, doctreedir=doctree_dir, buildername='html',
+                         parallel=4, verbosity=1)
+            print("PLOP\n\n")
+            time.sleep(200)
+            print(f"Copying previous param build")
+            shutil.copytree(old_parameters_folder + "build", new_parameters_folder + "build", dirs_exist_ok=True)
+
+            app.build()
+
+            print("Copying %s to %s" %
+                  (output_dir, old_parameters_folder + "build"))
+            shutil.copytree(output_dir, old_parameters_folder + "build", dirs_exist_ok=True)
+
+
 def cache_parameters_files(site=None):
     """
     For each vechile: put new_params_mversion/ content in
@@ -725,6 +789,29 @@ def cache_parameters_files(site=None):
                           (built, old_parameters_folder))
                     shutil.copy2(built, old_parameters_folder)
 
+            except Exception as e:
+                error(e)
+                pass
+
+def copy_cached_doctree(site=None):
+    for key, value in PARAMETER_SITE.items():
+        if (site == key or site is None) and (key != 'AP_Periph'): # and (key != 'AP_Periph') workaround until create a versioning for AP_Periph in firmware server # noqa: E501
+            try:
+                built_folder = (os.getcwd() +
+                                '/../old_params_mversion/%s/' % value)
+                built_parameters_files = [
+                    f for f in glob.glob(built_folder + "parameters-*.doctree")
+                ]
+                vehicle_folder = os.getcwd() + "/" + key + "/build/doctrees/docs/"
+                print(f"folder {vehicle_folder}")
+                os.makedirs(vehicle_folder, exist_ok=True)
+                print("Site %s getting previously built doctree files from %s" %
+                      (site, built_folder))
+                for built in built_parameters_files:
+                    if "latest" not in built and "beta" not in built: # latest parameters files must be built every time
+                        print("Reusing built %s in %s " %
+                              (built, vehicle_folder))
+                        shutil.copy(built, vehicle_folder)
             except Exception as e:
                 error(e)
                 pass
@@ -1068,6 +1155,9 @@ class WikiUpdater:
 
         copy_static_html_sites(self.args.site, self.args.destdir)
         generate_copy_dict()
+        if self.args.paramversioning:
+            prebuild_param_output(self.args.site)
+        exit(1)
         sphinx_make(self.args.site, self.args.parallel, self.args.fast)
 
         if self.args.paramversioning:
