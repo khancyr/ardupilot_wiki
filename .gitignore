@@ -18,7 +18,7 @@
 
 # static html pages
 !/frontend/*.html
-!/frontend/includes/*.html
+!/docs/*.html
 
 
 # Vagrant

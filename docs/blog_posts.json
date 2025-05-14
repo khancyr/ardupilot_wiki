@@ -1,0 +1,74 @@
+[
+    {
+        "title": "Transformer & Optimization Based High Altitude GPS-Denied Fusion",
+        "image": "https://discuss.ardupilot.org/uploads/default/optimized/3X/2/6/26904ad7d85b01174b4e68f953451f79499ff936_2_512x1024.jpeg",
+        "has_image": true,
+        "youtube_link": "nops",
+        "link": "https://discuss.ardupilot.org/t/transformer-optimization-based-high-altitude-gps-denied-fusion/134181",
+        "text": "1. SIFT-Based Prototype In my original GSOC post, I described a proof-of-concept NGPS pipeline that relied on SIFT feature matching against  (...)"
+    },
+    {
+        "title": "ArduPilot Monthly Update for May 2025",
+        "image": "https://discuss.ardupilot.org/uploads/default/optimized/3X/6/c/6c25db4ab200dd3a666de3a5eb6409f8262b86d4_2_1023x410.png",
+        "has_image": true,
+        "youtube_link": "nops",
+        "link": "https://discuss.ardupilot.org/t/ardupilot-monthly-update-for-may-2025/134100",
+        "text": "Here are the slides from the May 2025 update presented by Tridge, Randy, RyanF, PeterH and other devs at this month’s ArduPilot Partners me (...)"
+    },
+    {
+        "title": "Mission Planner Live Video support",
+        "image": "https://discuss.ardupilot.org/uploads/default/optimized/3X/0/e/0e785af90962237b2da8baee6259e4a3b63ccc0f_2_1024x657.jpeg",
+        "has_image": true,
+        "youtube_link": "nops",
+        "link": "https://discuss.ardupilot.org/t/mission-planner-live-video-support/132920",
+        "text": "mp-map-video1090×700 118 KB I think many users may not know that Mission Planner has two methods for showing live video and both are documen (...)"
+    },
+    {
+        "title": "ArduPilot Monthly Update for Apr 2025",
+        "image": "https://discuss.ardupilot.org/uploads/default/optimized/3X/9/8/98eea6e1e3792da1965e47711eb508497f663637_2_1024x349.jpeg",
+        "has_image": true,
+        "youtube_link": "nops",
+        "link": "https://discuss.ardupilot.org/t/ardupilot-monthly-update-for-apr-2025/132919",
+        "text": "Here are the slides from the Apr 2025 update presented by Tridge, Randy and other devs at this month’s ArduPilot Partners meeting. The imag (...)"
+    },
+    {
+        "title": "[Open Board] Pi-Fly",
+        "image": null,
+        "has_image": false,
+        "youtube_link": "",
+        "link": "https://discuss.ardupilot.org/t/open-board-pi-fly/132516",
+        "text": "Introducing Pi-Fly: A Powerful Linux-Based Raspberry Pi ArduPilot Flight Controller Hello everyone, I’m excited to introduce Pi-Fly, the n (...)"
+    },
+    {
+        "title": "XFRobot Gimbal Support",
+        "image": "https://discuss.ardupilot.org/uploads/default/original/3X/7/2/72223b6b05dce5d5a1d854b9d57fa3084acf435f.png",
+        "has_image": true,
+        "youtube_link": "nops",
+        "link": "https://discuss.ardupilot.org/t/xfrobot-gimbal-support/132467",
+        "text": "xfrobot-gimbal394×451 65.9 KB We’ve just recently added support for the XFRobot series of camera gimbals and we’d love it if some beta teste (...)"
+    },
+    {
+        "title": "DroneCAN GUI Web Tools running on browser",
+        "image": "https://discuss.ardupilot.org/uploads/default/original/3X/7/f/7f8adc1d5079ea829aed3ce29dfaef181dc51089.jpeg",
+        "has_image": false,
+        "youtube_link": "https://www.youtube-nocookie.com/embed/UzG2sr2kDgA",
+        "link": "https://discuss.ardupilot.org/t/dronecan-gui-web-tools-running-on-browser/132081",
+        "text": "I recently create this DroneCAN GUI Web Tool Hosting on https://can.vimdrones.com with this tool you can edit param and upgrade your AP_Per (...)"
+    },
+    {
+        "title": "Chris Rosser's ArduPilot Setup & Tuning Videos",
+        "image": "https://discuss.ardupilot.org/uploads/default/original/3X/0/1/013c245fe8ce5052f8c10a12721b1730603269ff.jpeg",
+        "has_image": false,
+        "youtube_link": "https://www.youtube-nocookie.com/embed/4pkSnBqA_m4&amp;list=PLFPBjpbd5xKSGFJfuQJBPWOm-sGv0VxD1&amp;index=1",
+        "link": "https://discuss.ardupilot.org/t/chris-rossers-ardupilot-setup-tuning-videos/131594",
+        "text": "Chris Rosser has produced a couple of informative ArduPilot setup and tuning videos here on his YouTube channel. Also while many of Chris’s (...)"
+    },
+    {
+        "title": "ArduPilot Monthly Update for Mar 2025",
+        "image": "https://discuss.ardupilot.org/uploads/default/original/3X/2/7/271b5ae5fca4a543c40dc558d768529308e18b83.png",
+        "has_image": true,
+        "youtube_link": "nops",
+        "link": "https://discuss.ardupilot.org/t/ardupilot-monthly-update-for-mar-2025/131343",
+        "text": "Here are the slides from the Mar 2025 update presented by Tridge, Randy and Amilcar at this month’s ArduPilot Partners meeting. The image o (...)"
+    }
+]

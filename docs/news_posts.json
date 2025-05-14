@@ -1,0 +1,74 @@
+[
+    {
+        "title": "Adele X10 pitching up at start of transition to FBWB",
+        "image": null,
+        "has_image": false,
+        "youtube_link": "",
+        "link": "https://discuss.ardupilot.org/t/adele-x10-pitching-up-at-start-of-transition-to-fbwb/134179",
+        "text": "I’m having troubles with a 4+1 quadplane, Adele X10.  If I transition to FBWB it seems to pitch up as the pusher motor spins up and climbs.  (...)"
+    },
+    {
+        "title": "Find the vibration cause on a Heli with balanced blades",
+        "image": null,
+        "has_image": false,
+        "youtube_link": "",
+        "link": "https://discuss.ardupilot.org/t/find-the-vibration-cause-on-a-heli-with-balanced-blades/134163",
+        "text": "This was the maiden flight of a brand-new TRex 500X Dominator, but displayed visible side-to-side shaking in flight – enough to make me disc (...)"
+    },
+    {
+        "title": "Foxeer reaper infinity(5w vtx) unable to control tx power",
+        "image": null,
+        "has_image": false,
+        "youtube_link": "",
+        "link": "https://discuss.ardupilot.org/t/foxeer-reaper-infinity-5w-vtx-unable-to-control-tx-power/109363",
+        "text": "I have built a 13 inch “long range” quad and I’m using matekh743 slim and foxeer reaper infinity vtx. I believe I have set the correct param (...)"
+    },
+    {
+        "title": "QGroundControl v5.0 - Release Candidate 1",
+        "image": null,
+        "has_image": false,
+        "youtube_link": "",
+        "link": "https://discuss.ardupilot.org/t/qgroundcontrol-v5-0-release-candidate-1/134339",
+        "text": "QGC 5.0 Release Candidate 1 is now available for testing. Please help us out with testing this before the release goes official:  You can ge (...)"
+    },
+    {
+        "title": "Thrust is not aligned with the throttle",
+        "image": null,
+        "has_image": false,
+        "youtube_link": "",
+        "link": "https://discuss.ardupilot.org/t/thrust-is-not-aligned-with-the-throttle/133684",
+        "text": "My drone is all set to fly and every calibration is done . Arming is done ,but when I’m trying to test the drone by arming it. The thrust is (...)"
+    },
+    {
+        "title": "Harmonic Notch filter not working",
+        "image": null,
+        "has_image": false,
+        "youtube_link": "",
+        "link": "https://discuss.ardupilot.org/t/harmonic-notch-filter-not-working/134307",
+        "text": "Hello. I am running ArduCopter V4.5.7 (2a3dc4b7) on a CubeOrange flight controller. I activated Harmonic notch filter after I performed some (...)"
+    },
+    {
+        "title": "Compiling bootloader from source issues",
+        "image": null,
+        "has_image": false,
+        "youtube_link": "",
+        "link": "https://discuss.ardupilot.org/t/compiling-bootloader-from-source-issues/126990",
+        "text": "AP_Bootloader_mybuild_linux.bin (14.0 KB) MicoAir405v2_AP_Bootloader.bin (13.9 KB) Hello , this is first time i am posting and not sure the  (...)"
+    },
+    {
+        "title": "Many tiny log files created while downloading logs",
+        "image": "https://discuss.ardupilot.org/uploads/default/optimized/3X/3/f/3fd24bfec45eb29007a6e44306a86a3d0fffc583_2_639x1024.png",
+        "has_image": true,
+        "youtube_link": "nops",
+        "link": "https://discuss.ardupilot.org/t/many-tiny-log-files-created-while-downloading-logs/133894",
+        "text": "I have been experiencing this issue for a while but haven’t been able to find a solution or any info about it. The only similar post I could (...)"
+    },
+    {
+        "title": "Delta Wing Aircraft - Heading Oscillation (5-15 degrees) in Stable Flight",
+        "image": null,
+        "has_image": false,
+        "youtube_link": "",
+        "link": "https://discuss.ardupilot.org/t/delta-wing-aircraft-heading-oscillation-5-15-degrees-in-stable-flight/134321",
+        "text": "Hi all, I am operating a delta wing aircraft using ArduPilot and Mission Planner. During flight, even in stable conditions, the heading is c (...)"
+    }
+]
