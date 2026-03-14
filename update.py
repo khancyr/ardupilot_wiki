@@ -727,7 +727,7 @@ def delete_old_wiki_backups(folder, n_to_keep):
         error('Error on deleting some previous wiki backup folders: %s' % e)
 
 
-def write_if_different(path: str, content: Union[str, bytes], encoding: str = 'utf-8') -> bool:
+def write_if_different(path: str, content: str, encoding: str = 'utf-8') -> bool:
     """Write ``content`` to ``path`` only when it's different from existing file.
 
     - Accepts ``str`` or ``bytes`` for ``content``.
@@ -740,29 +740,13 @@ def write_if_different(path: str, content: Union[str, bytes], encoding: str = 'u
     if dirpath:
         os.makedirs(dirpath, exist_ok=True)
 
-    # Binary content
-    if isinstance(content, (bytes, bytearray)):
-        new_bytes = bytes(content)
-        if os.path.exists(path):
-            try:
-                with open(path, 'rb') as f:
-                    if f.read() == new_bytes:
-                        return False
-            except Exception:
-                # fall through to write
-                pass
-        with open(path, 'wb') as f:
-            f.write(new_bytes)
-        return True
-
     # Text content
     new_text = str(content)
-    normalized_new = new_text.replace('\r\n', '\n')
     if os.path.exists(path):
         try:
             with open(path, 'r', encoding=encoding) as f:
-                existing = f.read().replace('\r\n', '\n')
-            if existing == normalized_new:
+                existing = f.read()
+            if existing == new_text:
                 return False
         except Exception:
             # fall through to write
@@ -937,7 +921,7 @@ def get_copy_targets(content):
     return targetset
 
 
-def strip_content(content, site):
+def strip_content(content, site) -> str:
     """
     Strips the copywiki shortcode. Removes content for other sites and
     the [site] shortcode itself.
