@@ -32,16 +32,24 @@ import time  # noqa: F401
 import logging
 import json
 from html.parser import HTMLParser
-import urllib.request
 import re
 import glob
 import argparse
+import requests
+from concurrent.futures import ThreadPoolExecutor
 
 parser = argparse.ArgumentParser(description="python3 build_parameters.py [options]")
 parser.add_argument("--verbose", dest='verbose', action='store_false', default=True, help="show debugging output")
 parser.add_argument("--ardupilotRepoFolder", dest='gitFolder', default="../ardupilot", help="Ardupilot git folder. ")
 parser.add_argument("--destination", dest='destFolder', default="../../../../new_params_mversion", help="Parameters*.rst destination folder.")  # noqa: E501
 parser.add_argument('--vehicle', dest='single_vehicle', help="If you just want to copy to one vehicle, you can do this. Otherwise it will work for all vehicles (Copter, Plane, Rover, AntennaTracker, Sub, Blimp)")  # noqa: E501
+DEFAULT_CACHE_TIME = 6 * 3600  # 6 hours in seconds
+
+# Get the directory where this script is located
+script_dir = os.path.dirname(os.path.abspath(__file__))
+default_cache_dir = os.path.join(script_dir, '.cache')
+
+parser.add_argument("--cache-dir", dest='cache_dir', default=default_cache_dir, help="Directory to cache HTTP responses")
 args = parser.parse_args()
 
 error_count = 0
@@ -72,6 +80,60 @@ handler = logging.StreamHandler(sys.stdout)
 handler.setFormatter(ColoredFormatter('[build_parameters.py]: [%(levelname)s]: %(message)s'))
 logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO, handlers=[handler])
 logger = logging.getLogger(__name__)
+
+# Global session for HTTP requests with connection pooling
+session = requests.Session()
+session.headers.update({
+    'User-Agent': 'Mozilla/5.0 (compatible; ArduPilotWikiBuilder/1.0)',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Connection': 'keep-alive'
+})
+
+
+def get_cached_url(url, cache_dir=None):
+    """Get URL content with caching to avoid repeated downloads"""
+    if cache_dir is None:
+        cache_dir = args.cache_dir
+
+    os.makedirs(cache_dir, exist_ok=True)
+
+    # Create cache filename from URL
+    cache_filename = re.sub(r'[^\w\-_.]', '_', url) + '.cache'
+    cache_path = os.path.join(cache_dir, cache_filename)
+
+    # Check if cached version exists and is recent (less than 6 hours old)
+    if os.path.exists(cache_path):
+        cache_age = time.time() - os.path.getmtime(cache_path)
+        if cache_age < DEFAULT_CACHE_TIME:
+            debug(f"Using cached content for {url}")
+            with open(cache_path, 'r', encoding='utf-8') as f:
+                return f.read()
+
+    # Fetch fresh content
+    try:
+        debug(f"Fetching fresh content from {url}")
+        response = session.get(url, timeout=30)
+        response.raise_for_status()
+        content = response.text
+
+    except requests.RequestException as e:
+        error(f"Failed to fetch {url}: {e}")
+        # Try to use old cached version if available
+        if os.path.exists(cache_path):
+            debug(f"Using stale cached content for {url}")
+            with open(cache_path, 'r', encoding='utf-8') as f:
+                return f.read()
+        raise
+    try:
+        # Cache the content
+        with open(cache_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+    except OSError as e:
+        error(f"Failed to write cache for {url}: {e}")
+        # optionally continue; content is still valid
+
+    return content
+
 
 # Parameters
 COMMITFILE = "git-version.txt"
@@ -178,51 +240,52 @@ def fetch_releases(firmware_url, vehicles):
     Select folders with the desired releases for the vehicles
 
     """
-
-    def fetch_vehicle_subfolders(firmware_url):
+    def fetch_vehicle_subfolders(vehicle_url):
         """
         Fetch firmware.ardupilot.org/baseURL all first level folders for a given base URL.
-
         """
-        links = []
-        # Define HTML Parser
+        class ParseText(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.links = []
 
-        class parseText(HTMLParser):
             def handle_starttag(self, tag, attrs):
-                if tag != 'a':
-                    return
-                attr = dict(attrs)
-                links.append(attr)
-        # Create instance of HTML parser
-        lParser = parseText()
-        # Feed HTML file into parsers
+                if tag == 'a':
+                    attr = dict(attrs)
+                    if 'href' in attr:
+                        self.links.append(attr['href'])
+
+        html_parser = ParseText()
         try:
             debug(f"Fetching {firmware_url}")
-            lParser.feed(urllib.request.urlopen(firmware_url).read().decode('utf8'))
+            content = get_cached_url(vehicle_url)
+            html_parser.feed(content)
         except Exception as e:
             error(f"Folders list download error: {e}")
             sys.exit(1)
-        finally:
-            lParser.links = []
-            lParser.close()
-            return links
-    ######################################################################################
 
-    debug("Cleaning fetched links for wanted folders")
-    stableFirmwares = []
-    for f in vehicles:
-        page_links = fetch_vehicle_subfolders(f"{firmware_url}{f}")
-        for folder in page_links:  # Non clever way to filter the strings insert by makehtml.py, unwanted folders, and so.
+        return html_parser.links
+
+
+    debug("Cleaning fetched links for the wanted folders")
+    filtered_firmware_links = []
+
+    def fetch_vehicle_links(vehicle):
+        vehicle_url = firmware_url + vehicle
+        page_links = fetch_vehicle_subfolders(vehicle_url)
+        for folder in page_links:
             version_folder = str(folder)
-            firmware_link = f"{firmware_url[:-1]}{version_folder[10:-2]}"
+            firmware_link = f"{firmware_url[:-1]}{version_folder}"
             if "stable" in version_folder and not version_folder.endswith("stable"): # If finish with
-                stableFirmwares.append(firmware_link)
+                filtered_firmware_links.append(firmware_link)
             elif "latest" in version_folder:
-                stableFirmwares.append(firmware_link)
+                filtered_firmware_links.append(firmware_link)
             elif "beta" in version_folder:
-                stableFirmwares.append(firmware_link)
+                filtered_firmware_links.append(firmware_link)
 
-    return stableFirmwares # links for the firmwares folders
+    with ThreadPoolExecutor() as executor:
+        executor.map(fetch_vehicle_links, vehicles)
+    return filtered_firmware_links
 
 
 def get_commit_dict(releases_parsed):
@@ -238,27 +301,33 @@ def get_commit_dict(releases_parsed):
         links = []
         # Define HTML Parser
 
-        class parseText(HTMLParser):
+        class ParseText(HTMLParser):
             def handle_starttag(self, tag, attrs):
                 if tag != 'a':
                     return
                 attr = dict(attrs)
                 links.append(attr)
         # Create instance of HTML parser
-        lParser = parseText()
+        lParser = ParseText()
         # Feed HTML file into parsers
         try:
             debug(f"Fetching {url}")
-            lParser.feed(urllib.request.urlopen(url).read().decode('utf8'))
+            content = get_cached_url(url)
+            lParser.feed(content)
         except Exception as e:
-            error(f"Folders list download error:{e}")
+            error(f"Folders list download error: {e}")
+            return None
         finally:
-            lParser.links = []
             lParser.close()
+
+        if links:  # Only proceed if we have links
             last_item = links.pop()
             last_folder = last_item['href']
             debug(f"Returning link of the last board folder ({last_folder[last_folder.rindex('/')+1:]})")
             return last_folder[last_folder.rindex('/')+1:]  # clean the partial link
+        else:
+            error(f"No board folders found for {url}")
+            return None
     ####################################################################################################
 
     def fetch_commit_hash(version_link, board, file):
@@ -271,11 +340,8 @@ def get_commit_dict(releases_parsed):
         progress(f"Processing link...\t{fetch_link}")
 
         try:
-            fecth_response = ""
-            with urllib.request.urlopen(fetch_link) as response:
-                fecth_response = response.read().decode("utf-8")
-
-            commit_details = fecth_response.split("\n")
+            fetch_response = get_cached_url(fetch_link)
+            commit_details = fetch_response.split("\n")
             commit_hash = commit_details[0][7:]
             # version =  commit_details[6] the sizes cary
             version = commit_details.pop(-2)
@@ -285,7 +351,7 @@ def get_commit_dict(releases_parsed):
 
             regex = re.compile(r'[@_!#$%^&*()<>?/\|}{~:]')
 
-            if (regex.search(vehicle) is None):  # there are some non standard names
+            if regex.search(vehicle) is None:  # there are some non standard names
                 vehicle = vehicle_old_to_new_name[vehicle.strip()]   # Names may not be standard as expected
             else:
                 # tries to fix automatically
@@ -329,17 +395,22 @@ def get_commit_dict(releases_parsed):
     ####################################################################################################
 
     commits_and_codes = {}
-    commite_and_codes_cleanned = {}
 
-    for j in range(0, len(releases_parsed)):
-        commits_and_codes[j] = fetch_commit_hash(releases_parsed[j], get_last_board_folder(releases_parsed[j]), COMMITFILE)
+    def fetch_data(release):
+        board_folder = get_last_board_folder(release)
+        return fetch_commit_hash(release, board_folder, COMMITFILE)
 
-    for i in commits_and_codes:
-        if commits_and_codes[i][0] != 'error':
-            commite_and_codes_cleanned[i] = commits_and_codes[i]
-    if len(commite_and_codes_cleanned) == 0:
+    with ThreadPoolExecutor() as executor:
+        commits_and_codes = list(executor.map(fetch_data, releases_parsed))
+
+    commits_and_codes_cleanned = {}
+    for i, cc in enumerate(commits_and_codes):
+        if cc[0] != 'error':
+            commits_and_codes_cleanned[i] = cc
+
+    if len(commits_and_codes_cleanned) == 0:
         error("Expected at least one commit")
-    return commite_and_codes_cleanned
+    return commits_and_codes_cleanned
 
 
 def generate_rst_files(commits_to_checkout_and_parse):
@@ -377,6 +448,8 @@ def generate_rst_files(commits_to_checkout_and_parse):
 
             else:
                 file_out.write(line)
+        file_in.close()
+        file_out.close()
 
     for i in commits_to_checkout_and_parse:
         vehicle = str(commits_to_checkout_and_parse[i][0])
@@ -404,7 +477,6 @@ def generate_rst_files(commits_to_checkout_and_parse):
         except Exception as e:
             error(f"GIT checkout error: {e}")
             sys.exit(1)
-        debug("")
 
         # Run param_parse.py tool from Autotest set in the desired commit id
         try:
@@ -439,7 +511,6 @@ def generate_rst_files(commits_to_checkout_and_parse):
             error(f'Error while parsing "Parameters.rst" | details:\t{vehicle}\t{version}\t{commit_id}')
             error(e)
             # sys.exit(1)
-        debug("")
 
     return 0
 
@@ -482,7 +553,6 @@ def generate_json(vehicles):
             error(f"Error while creating the JSON file {vehicle} in folder {os.getcwd()}")
             error(e)
             # sys.exit(1)
-        debug("")
 
 
 def move_results(vehicles):
