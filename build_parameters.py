@@ -246,12 +246,57 @@ def check_rst_for_duplicate_labels(filepath):
             seen.add(label_lower)
 
         if duplicates:
-            debug(f"Found {len(duplicates)} duplicate RST labels in {filepath}: {duplicates[:5]}")
+            logger.warning(f"Found {len(duplicates)} duplicate RST labels in {filepath}: {duplicates[:5]}")
             return True
         return False
     except Exception as e:
-        debug(f"Error checking RST file {filepath}: {e}")
+        error(f"Error checking RST file {filepath}: {e}")
         return False
+
+
+def dedupe_rngfnd_parameters_sections(filepath):
+    """Keep only the first RNGFNDx_* Parameters section and drop subsequent duplicate sections."""
+    # Accept RNGFND8, RNGFNDA, RNGFNDB etc.
+    label_re = re.compile(r'^\.\. _parameters_RNGFND([0-9A-Za-z]+)_.*:$', re.IGNORECASE)
+    include_re = re.compile(r'^\.\. _parameters_.*:$', re.IGNORECASE)
+
+    try:
+        with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+            lines = f.readlines()
+
+        seen = set()
+        out_lines = []
+        i = 0
+        while i < len(lines):
+            line = lines[i]
+            m = label_re.match(line.strip())
+            if m:
+                idx = m.group(1)
+                if idx in seen:
+                    # Skip duplicate RNGFND section (label + heading block)
+                    i += 1
+                    while i < len(lines):
+                        if include_re.match(lines[i].strip()) and not label_re.match(lines[i].strip()):
+                            break
+                        if label_re.match(lines[i].strip()):
+                            break
+                        i += 1
+                    continue
+                seen.add(idx)
+                out_lines.append(line)
+                i += 1
+                continue
+
+            out_lines.append(line)
+            i += 1
+
+        if len(out_lines) != len(lines):
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.writelines(out_lines)
+            debug(f"Dedupe applied to RNGFND sections in {filepath}")
+
+    except Exception as e:
+        debug(f"Failed to dedupe RNGFND parameters in {filepath}: {e}")
 
 
 # Dicts for name replacing
@@ -873,12 +918,12 @@ def process_single_parameter_file_with_repo(commit_data, repo_path):
 
         # Check for duplicate values in param_parse output
         has_duplicates = False
-        if result.stdout and "Duplicate" in result.stdout:
-            has_duplicates = True
-            debug(f"Duplicate values detected for {vehicle} {version}")
-        if result.stderr and "Duplicate" in result.stderr:
-            has_duplicates = True
-            debug(f"Duplicate values detected for {vehicle} {version}")
+        # if result.stdout and "Duplicate" in result.stdout:
+        #     has_duplicates = True
+        #     debug(f"Duplicate values detected for {vehicle} {version}")
+        # if result.stderr and "Duplicate" in result.stderr:
+        #     has_duplicates = True
+        #     debug(f"Duplicate values detected for {vehicle} {version}")
 
         # create a filename for new parameters file
         filename = "parameters-" + vehicle
@@ -898,6 +943,9 @@ def process_single_parameter_file_with_repo(commit_data, repo_path):
             replace_anchors(parameters_rst_path, output_file_path, filename[10:-4])
             os.remove(parameters_rst_path)
             debug("File " + filename + " generated. ")
+
+            # Remove duplicate RNGFNDx_ Parameters sections before checking labels.
+            dedupe_rngfnd_parameters_sections(output_file_path)
 
             # Check for duplicate RST labels in the generated file
             if check_rst_for_duplicate_labels(output_file_path):
