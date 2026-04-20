@@ -720,9 +720,41 @@ def fetch_versioned_parameters(site=None):
                     error(e)
                     pass
 
-                # We no longer copy versioned RST into the wiki source.
-                # Only JSON remains in the wiki source to support the selector.
-                # Versioned HTML is built independently and later copied by update.py.
+                # Copy all parameter files to vehicle folder IFF it is new
+                try:
+                    new_parameters_folder = f"{os.getcwd()}/../new_params_mversion/{value}/"
+                    new_parameters_files = [
+                        f for f in glob.glob(f"{new_parameters_folder}*.rst")
+                    ]
+                except Exception as e:
+                    error(e)
+                    pass
+                for filename in new_parameters_files:
+                    # Check possible cached version
+                    try:
+                        new_file = f"{key}/source/docs/{filename[filename.rfind('/') + 1:]}"
+                        if not os.path.isfile(new_file):
+                            debug(f"Copying {filename} to {new_file} (target file does not exist)")
+                            shutil.copy2(filename, new_file)
+                        elif os.path.isfile(filename.replace("new_params_mversion", "old_params_mversion")): # The cached file exists?  # noqa: E501
+
+                            # Temporary debug messages to help with cache tasks.
+                            debug("Check cache: {} against {}".format(filename, filename.replace("new_params_mversion", "old_params_mversion")))  # noqa: E501
+                            debug("Check cache with filecmp.cmp: {}".format(filecmp.cmp(filename, filename.replace("new_params_mversion", "old_params_mversion"))))  # noqa: E501
+                            debug("Check cache with sha256: {}".format(is_the_same_file(filename, filename.replace("new_params_mversion", "old_params_mversion"))))  # noqa: E501
+
+                            if ("parameters.rst" in filename) or (not filecmp.cmp(filename, filename.replace("new_params_mversion", "old_params_mversion"))):    # It is different?  OR is this one the latest. | Latest file must be built every time in order to enable Sphinx create the correct references across the wiki.  # noqa: E501
+                                debug(f"Overwriting {filename} to {new_file}")
+                                shutil.copy2(filename, new_file)
+                            else:
+                                debug(f"It will reuse the last build of {new_file}")
+                        else:   # If not cached, copy it anyway.
+                            debug(f"Copying {filename} to {new_file}")
+                            shutil.copy2(filename, new_file)
+
+                    except Exception as e:
+                        error(e)
+                        pass
 
 
 def create_latest_parameter_redirect(default_param_file, vehicle):
@@ -788,9 +820,7 @@ def put_cached_parameters_files_in_sites(site=None):
     for key, value in PARAMETER_SITE.items():
         if (site == key or site is None) and (key != 'AP_Periph'): # and (key != 'AP_Periph') workaround until create a versioning for AP_Periph in firmware server # noqa: E501
             try:
-                built_folder = os.path.abspath(os.path.join(os.getcwd(), '..', 'new_params_mversion_html', value))
-                if not os.path.isdir(built_folder):
-                    built_folder = os.path.abspath(os.path.join(os.getcwd(), '..', 'old_params_mversion', value))
+                built_folder = f"{os.getcwd()}/../old_params_mversion/{value}/"
                 built_parameters_files = [
                     f for f in glob.glob(f"{built_folder}parameters-*.html")
                 ]

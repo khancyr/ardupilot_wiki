@@ -173,9 +173,10 @@ def dedupe_rngfnd_parameters_sections(filepath: str) -> None:
             debug(f"Failed to dedupe RNGFND parameters in {filepath}: {e}")
 
 
-def write_versioned_parameters_conf(source_dir: str) -> None:
+def write_versioned_parameters_conf(source_dir: str, static_dir: str | None = None) -> None:
     """Write a minimal Sphinx conf.py for versioned parameter HTML generation."""
     extensions_path = os.path.abspath(os.path.join(WIKI_ROOT, 'scripts', 'extensions'))
+    html_static_path_value = json.dumps([os.path.abspath(static_dir)]) if static_dir else "['_static']"
     conf_content = f"""
 import os
 import sys
@@ -186,7 +187,7 @@ master_doc = 'index'
 source_suffix = '.rst'
 exclude_patterns = []
 html_theme = 'basic'
-html_static_path = ['_static']
+html_static_path = {html_static_path_value}
 html_search_options = {{'dict_max_word_length': 40}}
 nitpicky = False
 
@@ -232,37 +233,14 @@ def build_versioned_parameters_html(vehicles: List[str]) -> None:
 
         html_destination = os.path.abspath(os.path.join(HTML_DEST_FOLDER, vehicle_key))
         cache_root = os.path.join(HTML_CACHE_FOLDER, vehicle_key)
-        cache_source = os.path.join(cache_root, 'source')
         cache_build = os.path.join(cache_root, 'build')
 
-        docs_dir = os.path.join(cache_source, 'docs')
-        static_dir = os.path.join(cache_source, '_static')
-        os.makedirs(docs_dir, exist_ok=True)
-        os.makedirs(static_dir, exist_ok=True)
         os.makedirs(cache_build, exist_ok=True)
         os.makedirs(html_destination, exist_ok=True)
-
-        # Cleanup the source docs directory before writing new RST pages.
-        for existing_rst in glob.glob(os.path.join(docs_dir, 'parameters-*.rst')):
-            os.remove(existing_rst)
-
-        # Copy generated JSON files so the script has access to them during build
-        json_name = f"parameters-{vehicle}.json"
-        if os.path.exists(json_name):
-            shutil.copy2(json_name, os.path.join(static_dir, json_name))
-
-        copy_existing_versioning_script(static_dir)
-        write_versioned_parameters_conf(cache_source)
 
         for rst_file in source_files:
             page_name = os.path.splitext(os.path.basename(rst_file))[0]
             progress(f"Building independent versioned HTML for {vehicle_key} - {page_name}")
-            # Build only one page at a time to keep memory low.
-            for existing_rst in glob.glob(os.path.join(docs_dir, 'parameters-*.rst')):
-                os.remove(existing_rst)
-            dest = os.path.join(docs_dir, os.path.basename(rst_file))
-            shutil.copy2(rst_file, dest)
-            write_versioned_index(cache_source, [f"docs/{page_name}"])
 
             page_build = os.path.join(cache_build, page_name)
             if os.path.isdir(page_build):
@@ -271,27 +249,46 @@ def build_versioned_parameters_html(vehicles: List[str]) -> None:
             page_doctrees = os.path.join(page_build, '.doctrees')
             os.makedirs(page_doctrees, exist_ok=True)
 
+            temp_source = tempfile.mkdtemp(prefix='build_parameters_sphinx_source_')
             try:
+                vehicle_source = os.path.join(temp_source, vehicle_key)
+                os.makedirs(vehicle_source, exist_ok=True)
+
+                static_dir = os.path.join(temp_source, '_static')
+                os.makedirs(static_dir, exist_ok=True)
+
+                json_name = f"parameters-{vehicle}.json"
+                if os.path.exists(json_name):
+                    shutil.copy2(json_name, os.path.join(static_dir, json_name))
+
+                copy_existing_versioning_script(static_dir)
+                write_versioned_parameters_conf(temp_source)
+
+                dest = os.path.join(vehicle_source, os.path.basename(rst_file))
+                shutil.copy2(rst_file, dest)
+                write_versioned_index(temp_source, [f"{vehicle_key}/{page_name}"])
+
                 with sphinx_docutils.docutils_namespace():
                     app = Sphinx(
                         buildername='html',
-                        confdir=cache_source,
+                        confdir=temp_source,
                         doctreedir=page_doctrees,
                         outdir=page_build,
-                        srcdir=cache_source,
-                        parallel=2,
+                        srcdir=temp_source,
+                        parallel=4,
                     )
-                    app.build()
+                    app.build(filenames=[dest])
 
-                html_file = os.path.join(page_build, 'docs', f"{page_name}.html")
-                if os.path.exists(html_file):
-                    shutil.copy2(html_file, os.path.join(html_destination, f"{page_name}.html"))
+                html_files = glob.glob(os.path.join(page_build, '**', f"{page_name}.html"), recursive=True)
+                if html_files:
+                    shutil.copy2(html_files[0], os.path.join(html_destination, f"{page_name}.html"))
                     debug(f"Copied independent versioned HTML {page_name}.html to {html_destination}")
                 else:
                     debug(f"Expected HTML output not found for {page_name}")
-
             except Exception as e:
                 error(f"Failed to build independent versioned HTML file {page_name} for {vehicle_key}: {e}")
+            finally:
+                shutil.rmtree(temp_source, ignore_errors=True)
 
 
 # Dicts for name replacing
