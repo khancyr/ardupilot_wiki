@@ -37,10 +37,11 @@ RUN if [ "$PARAMVERSIONING" -ne 1 ]; then echo "Not building paramversionning"; 
      else echo 'Building paramversionning' \
     && sudo git clone https://github.com/ArduPilot/ardupilot.git \
     && sudo chown -R ${USER_NAME}:${USER_NAME} /ardupilot \
-    && mkdir -p /${WORKDIRECTORY}/new_params_mversion /${WORKDIRECTORY}/old_params_mversion \
-    && sudo chown -R ${USER_NAME}:${USER_NAME} /${WORKDIRECTORY}/new_params_mversion /${WORKDIRECTORY}/old_params_mversion \
-    && sudo ln -s /${WORKDIRECTORY}/new_params_mversion /new_params_mversion \
-    && sudo ln -s /${WORKDIRECTORY}/old_params_mversion /old_params_mversion; fi
+    && mkdir -p ${WORKDIRECTORY}/new_params_mversion ${WORKDIRECTORY}/old_params_mversion ${WORKDIRECTORY}/new_params_mversion_html \
+    && sudo chown -R ${USER_NAME}:${USER_NAME} ${WORKDIRECTORY}/new_params_mversion ${WORKDIRECTORY}/old_params_mversion ${WORKDIRECTORY}/new_params_mversion_html \
+    && sudo ln -s ${WORKDIRECTORY}/new_params_mversion /new_params_mversion \
+    && sudo ln -s ${WORKDIRECTORY}/old_params_mversion /old_params_mversion \
+    && sudo ln -s ${WORKDIRECTORY}/new_params_mversion_html /new_params_mversion_html; fi
 WORKDIR ${WORKDIRECTORY}
 
 ENV PATH="/home/${USER_NAME}/.local/bin:${PATH}"
